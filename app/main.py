@@ -7,4 +7,5 @@ app = FastAPI(title="Gamified Habit Tracker")
 def on_startup():
     create_db_and_tables()
 app.include_router(users.router, tags=["Users"])
+app.include_router(habits.router, tags=["Habits"])
 
