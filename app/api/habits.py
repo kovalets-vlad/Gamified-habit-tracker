@@ -56,3 +56,18 @@ def delete_habit(habit_id: int, session: SessionDep):
     session.delete(habit)
     session.commit()
     return {"ok": True}
+
+@router.get("/habits/user/{user_id}")
+def read_habits_by_user(
+    user_id: int,
+    session: SessionDep,
+    offset: int = 0,
+    limit: Annotated[int, Query(le=100)] = 100,
+) -> list[Habit]:
+    habits = session.exec(
+        select(Habit).where(Habit.owner_id == user_id).offset(offset).limit(limit)
+    ).all()
+    if not habits:
+        raise HTTPException(status_code=404, detail="No habits found for this user")
+    return habits
+
