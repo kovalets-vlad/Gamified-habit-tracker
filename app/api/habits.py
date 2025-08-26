@@ -6,7 +6,7 @@ from ..db.session import SessionDep
 
 router = APIRouter()
 
-@router.post("/habits/")
+@router.post("/")
 def create_habit(habit: Habit, session: SessionDep) -> Habit:
     session.add(habit)
     session.commit()
@@ -14,7 +14,7 @@ def create_habit(habit: Habit, session: SessionDep) -> Habit:
     return habit
 
 
-@router.get("/habits/")
+@router.get("/")
 def read_habits(
     session: SessionDep,
     offset: int = 0,
@@ -24,7 +24,7 @@ def read_habits(
     return habits
 
 
-@router.get("/habits/{habit_id}")
+@router.get("/{habit_id}")
 def read_habit(habit_id: int, session: SessionDep) -> Habit:
     habit = session.get(Habit, habit_id)
     if not habit:
@@ -32,7 +32,7 @@ def read_habit(habit_id: int, session: SessionDep) -> Habit:
     return habit
 
 
-@router.put("/habits/{habit_id}")
+@router.put("/{habit_id}")
 def update_habit(habit_id: int, updated_habit: Habit, session: SessionDep) -> Habit:
     db_habit = session.get(Habit, habit_id)
     if not db_habit:
@@ -48,7 +48,7 @@ def update_habit(habit_id: int, updated_habit: Habit, session: SessionDep) -> Ha
     return db_habit
 
 
-@router.delete("/habits/{habit_id}")
+@router.delete("/{habit_id}")
 def delete_habit(habit_id: int, session: SessionDep):
     habit = session.get(Habit, habit_id)
     if not habit:
@@ -57,7 +57,7 @@ def delete_habit(habit_id: int, session: SessionDep):
     session.commit()
     return {"ok": True}
 
-@router.get("/habits/user/{user_id}")
+@router.get("/user/{user_id}")
 def read_habits_by_user(
     user_id: int,
     session: SessionDep,
