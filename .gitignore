@@ -1,6 +1,6 @@
 /venv
 /.vscode
-/app/core
+/app/core/config.py
 /database.db 
 __pycache__/
 *.pyc
