@@ -1,5 +1,12 @@
 from sqlmodel import SQLModel, Field, Relationship
+from enum import Enum
 from typing import Optional, List
+
+class Role(str, Enum):
+    admin = "admin"
+    user = "user"
+    manager = "manager"
+    moderator = "moderator"
 
 class User(SQLModel, table=True):
     __tablename__ = "users"
@@ -8,6 +15,8 @@ class User(SQLModel, table=True):
     username: str = Field(index=True, unique=True)
     nickname: Optional[str] = Field(default="User")
     password: str
+    email: Optional[str]
+    role: Role = Field(default=Role.user)
 
     habits: List["Habit"] = Relationship(back_populates="owner")
 
