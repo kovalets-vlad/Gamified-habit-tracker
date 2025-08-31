@@ -13,7 +13,6 @@ def create_habit(
     session: SessionDep,
     current_user: Annotated[User, Depends(get_current_user)],
 ) -> Habit:
-    # завжди створюємо з owner_id = поточний користувач
     habit.owner_id = current_user.id
     session.add(habit)
     session.commit()
@@ -99,7 +98,6 @@ def read_habits_by_user(
     offset: int = 0,
     limit: Annotated[int, Query(le=100)] = 100,
 ) -> list[Habit]:
-    # тільки адмін може дивитися чужі
     if current_user.id != user_id and current_user.role != "admin":
         raise HTTPException(status_code=403, detail="Not enough permissions")
 

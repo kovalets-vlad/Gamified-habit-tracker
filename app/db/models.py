@@ -1,4 +1,4 @@
-from sqlmodel import SQLModel, Field, Relationship
+from sqlmodel import SQLModel, Field, Relationship, DateTime, Date
 from enum import Enum
 from typing import Optional, List
 
@@ -20,7 +20,6 @@ class User(SQLModel, table=True):
 
     habits: List["Habit"] = Relationship(back_populates="owner")
 
-
 class Habit(SQLModel, table=True):
     __tablename__ = "habits"
 
@@ -31,3 +30,30 @@ class Habit(SQLModel, table=True):
     owner_id: Optional[int] = Field(default=None, foreign_key="users.id")
 
     owner: Optional[User] = Relationship(back_populates="habits")
+
+class Achievement(SQLModel, table=True):
+    id: int = Field(primary_key=True)
+    title: str
+    description: str | None = None
+    condition: str  
+    is_global: bool = True  
+    user_id: int | None = Field(default=None, foreign_key="user.id")  
+
+class UserAchievement(SQLModel, table=True):
+    id: int = Field(primary_key=True)
+    user_id: int = Field(foreign_key="user.id")
+    achievement_id: int = Field(foreign_key="achievement.id")
+    obtained: bool = False
+    obtained_at: DateTime | None = None
+
+class Streak(SQLModel, table=True):
+    id: int = Field(primary_key=True)
+    user_id: int = Field(foreign_key="user.id")
+    habit_id: int = Field(foreign_key="habit.id")
+    current_streak: int = 0
+    longest_streak: int = 0
+    last_completed: Date | None = None  
+
+
+
+
