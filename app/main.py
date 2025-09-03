@@ -1,5 +1,5 @@
 from fastapi import FastAPI
-from app.api import users, habits, auth
+from app.api import users, habits, auth, achievements
 from .db.init_db import create_db_and_tables
 
 app = FastAPI(title="Gamified Habit Tracker")
@@ -10,4 +10,6 @@ def on_startup():
 app.include_router(auth.router, tags=["Auth"])
 app.include_router(users.router, prefix="/users", tags=["Users"])
 app.include_router(habits.router, prefix="/habits", tags=["Habits"])
+app.include_router(achievements.router, prefix="/achievements", tags=["Achievements"])
+
 
