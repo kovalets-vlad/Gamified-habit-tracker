@@ -2,6 +2,7 @@ from typing import Annotated
 from fastapi import APIRouter, Query, HTTPException, Depends
 from sqlmodel import select
 from ..db.models import Habit, User, Streak
+from ..db.response_model import HabitWithStreak
 from ..db.session import SessionDep
 from ..utils.dependencies import get_current_user
 from datetime import date, timedelta
@@ -75,17 +76,37 @@ def complete_habit(
 
     return db_habit
 
-@router.get("/", response_model=list[Habit])
+@router.get("/", response_model=list[HabitWithStreak])
 def read_my_habits(
     session: SessionDep,
     current_user: Annotated[User, Depends(get_current_user)],
     offset: int = 0,
     limit: Annotated[int, Query(le=100)] = 100,
-) -> list[Habit]:
+):
+
     habits = session.exec(
-        select(Habit).where(Habit.owner_id == current_user.id).offset(offset).limit(limit)
+        select(Habit)
+        .where(Habit.owner_id == current_user.id)
+        .offset(offset)
+        .limit(limit)
     ).all()
-    return habits
+
+    streaks = session.exec(
+        select(Streak).where(Streak.user_id == current_user.id)
+    ).all()
+
+    streak_map = {s.habit_id: s for s in streaks}
+
+    results = []
+    for habit in habits:
+        results.append(HabitWithStreak(
+            id=habit.id,
+            name=habit.title,
+            description=habit.description,
+            streak=streak_map.get(habit.id)  
+        ))
+
+    return results
 
 
 @router.get("/{habit_id}", response_model=Habit)
