@@ -2,6 +2,8 @@ from sqlmodel import SQLModel, Field, Relationship
 from datetime import datetime, date
 from enum import Enum
 from typing import Optional, List
+from sqlalchemy import Column
+from .response_model import JSONEncodedDict
 
 class Role(str, Enum):
     admin = "admin"
@@ -41,7 +43,7 @@ class Achievement(SQLModel, table=True):
     id: int = Field(primary_key=True)
     title: str
     description: str | None = None
-    condition: str  
+    condition: dict = Field(sa_column=Column(JSONEncodedDict)) 
     is_global: bool = True  
     user_id: int | None = Field(default=None, foreign_key="users.id")  
 

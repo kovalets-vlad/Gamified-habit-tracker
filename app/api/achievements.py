@@ -4,7 +4,7 @@ from sqlmodel import select
 from ..db.session import SessionDep
 from ..db.models import Achievement, UserAchievement, User, Role
 from ..utils.dependencies import get_current_user
-from ..db.models import User
+from ..db.response_model import UserAchievementRead
 
 router = APIRouter()
 
@@ -26,8 +26,6 @@ def create_achievement(
     session.refresh(achievement)
     return achievement
 
-
-
 @router.get("/", response_model=list[Achievement])
 def read_achievements(
     session: SessionDep,
@@ -48,8 +46,6 @@ def read_achievements(
 
     return session.exec(query.offset(offset).limit(limit)).all()
 
-
-
 @router.get("/{achievement_id}", response_model=Achievement)
 def read_achievement(
     achievement_id: int,
@@ -65,8 +61,6 @@ def read_achievement(
             raise HTTPException(status_code=403, detail="Not enough permissions")
 
     return achievement
-
-
 
 @router.delete("/{achievement_id}")
 def delete_achievement(
@@ -97,17 +91,17 @@ def create_user_achievement(user_achievement: UserAchievement, session: SessionD
     session.refresh(user_achievement)
     return user_achievement
 
-@router.get("/user/", response_model=list[UserAchievement])
+@router.get("/user/", response_model=list[UserAchievementRead])
 def read_user_achievements(
     session: SessionDep,
-    user_id: int | None = None,
+    current_user: Annotated[User, Depends(get_current_user)],
     offset: int = 0,
-    limit: Annotated[int, Query(le=100)] = 100
+    limit: Annotated[int, Query(le=100)] = 100,
+
 ):
-    query = select(UserAchievement)
-    if user_id:
-        query = query.where(UserAchievement.user_id == user_id)
+    query = select(UserAchievement).where(UserAchievement.user_id == current_user.id)
     return session.exec(query.offset(offset).limit(limit)).all()
+
 
 @router.get("/user/{ua_id}", response_model=UserAchievement)
 def read_user_achievement(ua_id: int, session: SessionDep):
