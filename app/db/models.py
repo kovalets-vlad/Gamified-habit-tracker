@@ -2,6 +2,8 @@ from sqlmodel import SQLModel, Field, Relationship
 from datetime import datetime, date
 from enum import Enum
 from typing import Optional, List
+from sqlalchemy import Column
+from .response_model import JSONEncodedDict
 
 class Role(str, Enum):
     admin = "admin"
@@ -16,8 +18,10 @@ class User(SQLModel, table=True):
     username: str = Field(index=True, unique=True)
     nickname: Optional[str] = Field(default="User")
     password: str
-    email: Optional[str]
     role: Role = Field(default=Role.user)
+    xp: int = Field(default=0)
+    level: int = Field(default=1)
+
 
     habits: List["Habit"] = Relationship(back_populates="owner")
 
@@ -28,6 +32,7 @@ class Habit(SQLModel, table=True):
     title: str = Field(index=True)
     description: Optional[str] = Field(default=None)
     is_active: bool = Field(default=True)
+    frequency: int = Field(default=1) 
     owner_id: Optional[int] = Field(default=None, foreign_key="users.id")
 
     owner: Optional[User] = Relationship(back_populates="habits")
@@ -38,7 +43,7 @@ class Achievement(SQLModel, table=True):
     id: int = Field(primary_key=True)
     title: str
     description: str | None = None
-    condition: str  
+    condition: dict = Field(sa_column=Column(JSONEncodedDict)) 
     is_global: bool = True  
     user_id: int | None = Field(default=None, foreign_key="users.id")  
 

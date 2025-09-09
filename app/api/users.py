@@ -10,26 +10,26 @@ from ..utils.users import require_role
 
 router = APIRouter()
 
-# @router.post("/") 
-# def create_user(user: User, session: SessionDep) -> User: 
-#     user.password = get_password_hash(user.password) 
-#     session.add(user) 
-#     session.commit() 
-#     session.refresh(user) 
-#     return user
-
-@router.post("/", response_model=User)
-def create_user(
-    user: User,
-    session: SessionDep,
-    current_user: Annotated[User, Depends(get_current_user)], 
-) -> User:
-    require_role(current_user, roles="admin") 
-    user.password = get_password_hash(user.password)
-    session.add(user)
-    session.commit()
-    session.refresh(user)
+@router.post("/") 
+def create_user(user: User, session: SessionDep) -> User: 
+    user.password = get_password_hash(user.password) 
+    session.add(user) 
+    session.commit() 
+    session.refresh(user) 
     return user
+
+# @router.post("/", response_model=User)
+# def create_user(
+#     user: User,
+#     session: SessionDep,
+#     current_user: Annotated[User, Depends(get_current_user)], 
+# ) -> User:
+#     require_role(current_user, roles="admin") 
+#     user.password = get_password_hash(user.password)
+#     session.add(user)
+#     session.commit()
+#     session.refresh(user)
+#     return user
 
 
 @router.get("/", response_model=list[User])
