@@ -14,6 +14,7 @@ class HabitWithStreak(BaseModel):
     id: int
     name: str
     description: Optional[str] = None
+    frequency: Optional[int] = None
     streak: Optional[StreakOut] = None
 
     class Config:

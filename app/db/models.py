@@ -16,8 +16,10 @@ class User(SQLModel, table=True):
     username: str = Field(index=True, unique=True)
     nickname: Optional[str] = Field(default="User")
     password: str
-    email: Optional[str]
     role: Role = Field(default=Role.user)
+    xp: int = Field(default=0)
+    level: int = Field(default=1)
+
 
     habits: List["Habit"] = Relationship(back_populates="owner")
 
@@ -28,6 +30,7 @@ class Habit(SQLModel, table=True):
     title: str = Field(index=True)
     description: Optional[str] = Field(default=None)
     is_active: bool = Field(default=True)
+    frequency: int = Field(default=1) 
     owner_id: Optional[int] = Field(default=None, foreign_key="users.id")
 
     owner: Optional[User] = Relationship(back_populates="habits")

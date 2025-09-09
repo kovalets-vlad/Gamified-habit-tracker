@@ -6,6 +6,7 @@ from ..db.response_model import HabitWithStreak
 from ..db.session import SessionDep
 from ..utils.dependencies import get_current_user
 from datetime import date, timedelta
+from math import floor, sqrt
 
 router = APIRouter()
 
@@ -56,11 +57,12 @@ def complete_habit(
         raise HTTPException(status_code=404, detail="Streak not found")
 
     today = date.today()
+    freq = db_habit.frequency  
 
     if streak.last_completed == today:
         raise HTTPException(status_code=400, detail="Habit already completed today")
 
-    if streak.last_completed == today - timedelta(days=1):
+    if streak.last_completed == today - timedelta(days=freq):
         streak.current_streak += 1
     else:
         streak.current_streak = 1
@@ -71,10 +73,18 @@ def complete_habit(
         streak.longest_streak = streak.current_streak
 
     session.add(streak)
+
+    user = session.get(User, current_user.id)
+    user.xp += 5 * freq if freq > 1 else 10
+    user.level = floor(sqrt(user.xp) / 10)
+    session.add(user)
+
     session.commit()
-    session.refresh(streak)
+    session.refresh(user)
+    session.refresh(db_habit)
 
     return db_habit
+
 
 @router.get("/", response_model=list[HabitWithStreak])
 def read_my_habits(
@@ -103,6 +113,7 @@ def read_my_habits(
             id=habit.id,
             name=habit.title,
             description=habit.description,
+            frequency = habit.frequency,
             streak=streak_map.get(habit.id)  
         ))
 
