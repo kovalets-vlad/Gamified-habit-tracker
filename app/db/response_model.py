@@ -4,8 +4,6 @@ from datetime import date
 from sqlalchemy.types import TypeDecorator, TEXT
 import json
 
-from pydantic import BaseModel
-
 class UserAchievementRead(BaseModel):
     id: int
     user_id: int

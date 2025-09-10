@@ -46,6 +46,9 @@ class Achievement(SQLModel, table=True):
     condition: dict = Field(sa_column=Column(JSONEncodedDict)) 
     is_global: bool = True  
     user_id: int | None = Field(default=None, foreign_key="users.id")  
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+
+    medal: Optional["Medal"] = Relationship(back_populates="achievements")
 
 class UserAchievement(SQLModel, table=True):
     id: int = Field(primary_key=True)
@@ -65,6 +68,21 @@ class Streak(SQLModel, table=True):
     longest_streak: int = 0
     last_completed: date | None = None  
 
+class Medal(SQLModel, table=True):
+    __tablename__ = "medals"
+
+    id: int = Field(primary_key=True)
+    name: str
+    xp_reward: int = 0
+    icon_url: str | None = None  
+
+    achievements: list["Achievement"] = Relationship(back_populates="medal")
+
+class MedalAchievementLink(SQLModel, table=True):
+    __tablename__ = "medal_achievement_link"
+
+    medal_id: int = Field(foreign_key="medals.id", primary_key=True)
+    achievement_id: int = Field(foreign_key="achievements.id", primary_key=True)
 
 
 

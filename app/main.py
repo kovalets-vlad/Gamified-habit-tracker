@@ -9,8 +9,9 @@ def on_startup():
 
 app.include_router(auth.router, tags=["Auth"])
 app.include_router(users.router, prefix="/users", tags=["Users"])
-app.include_router(users.router, prefix="/streak", tags=["Users"])
+app.include_router(users.router, prefix="/streak", tags=["Streaks"])
 app.include_router(habits.router, prefix="/habits", tags=["Habits"])
 app.include_router(achievements.router, prefix="/achievements", tags=["Achievements"])
+app.include_router(streak.router, prefix="/medals", tags=["Medals"])
 
 
