@@ -6,7 +6,7 @@ from ..db.models import Streak
 
 router = APIRouter()
 
-@router.get("/streak/", response_model=list[Streak])
+@router.get("", response_model=list[Streak])
 def read_streaks(
     session: SessionDep,
     user_id: int | None = None,
@@ -21,7 +21,7 @@ def read_streaks(
         query = query.where(Streak.habit_id == habit_id)
     return session.exec(query.offset(offset).limit(limit)).all()
 
-@router.get("/streak/{streak_id}", response_model=Streak)
+@router.get("/{streak_id}", response_model=Streak)
 def read_streak(streak_id: int, session: SessionDep):
     streak = session.get(Streak, streak_id)
     if not streak:

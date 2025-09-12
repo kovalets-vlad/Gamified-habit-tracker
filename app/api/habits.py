@@ -1,28 +1,32 @@
 from typing import Annotated
 from fastapi import APIRouter, Query, HTTPException, Depends
 from sqlmodel import select
-from ..db.models import Habit, User, Streak, Achievement, UserAchievement
+from ..db.models import Habit, User, Streak, Achievement, UserAchievement, UserWallet
 from ..db.response_model import HabitWithStreak
 from ..db.session import SessionDep
 from ..utils.dependencies import get_current_user
 from datetime import date, timedelta
-from math import floor, sqrt
+from math import floor
 import json
 from ..utils.check_condition import check_condition
 
-def check_and_grant_achievements(session, user: User, habit: Habit, streak: Streak):
+def check_and_grant_achievements(session: SessionDep, user: User, habit: Habit, streak: Streak):
     achievements = session.exec(
-        select(Achievement).where(
-            (Achievement.is_global == True) | (Achievement.user_id == user.id)
-        )
+        select(Achievement)
     ).all()
-    user_achievements = session.exec(
-        select(UserAchievement).where(UserAchievement.user_id == user.id)
-    ).all()
-    obtained_ids = {ua.achievement_id for ua in user_achievements}
+
+    obtained_ids = set(
+        session.exec(
+            select(UserAchievement.achievement_id).where(UserAchievement.user_id == user.id)
+        ).all()
+    )
+
+    wallet = session.exec(select(UserWallet).where(UserWallet.user_id == user.id)).first()
+
     for ach in achievements:
         if ach.id in obtained_ids:
             continue
+
         cond = ach.condition if isinstance(ach.condition, dict) else json.loads(ach.condition)
         if check_condition(cond, streak, user):
             ua = UserAchievement(
@@ -32,6 +36,18 @@ def check_and_grant_achievements(session, user: User, habit: Habit, streak: Stre
                 obtained=True
             )
             session.add(ua)
+            ua = UserAchievement(
+                user_id=user.id,
+                achievement_id=ach.id,
+                habit_id=None,
+                obtained=True
+            )
+            session.add(ua)
+
+            if wallet:
+                gems_reward = getattr(ach, "gems_reward", 1) 
+                wallet.gems += gems_reward
+                session.add(wallet)
 
     session.commit()
 
@@ -89,22 +105,29 @@ def complete_habit(
     if streak.last_completed == today:
         raise HTTPException(status_code=400, detail="Habit already completed today")
 
+
     if streak.last_completed == today - timedelta(days=freq):
         streak.current_streak += 1
     else:
         streak.current_streak = 1
 
     streak.last_completed = today
-
     if streak.current_streak > streak.longest_streak:
         streak.longest_streak = streak.current_streak
 
     session.add(streak)
 
     user = session.get(User, current_user.id)
-    user.xp += 5 * freq if freq > 1 else 10
-    user.level = floor(sqrt(user.xp) / 10)
+    xp_gain = 5 * freq if freq > 1 else 10
+    user.xp += xp_gain
+    user.level = floor((user.xp)**0.5 / 10)
     session.add(user)
+
+    wallet = session.exec(select(UserWallet).where(UserWallet.user_id == user.id)).first()
+    if wallet:
+        coins_reward = 10 * freq  
+        wallet.coins += coins_reward
+        session.add(wallet)
 
     session.commit()
     session.refresh(user)
@@ -114,6 +137,7 @@ def complete_habit(
     check_and_grant_achievements(session, user, db_habit, streak)
 
     return db_habit
+
 
 
 @router.get("/", response_model=list[HabitWithStreak])
