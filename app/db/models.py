@@ -43,12 +43,9 @@ class Achievement(SQLModel, table=True):
     id: int = Field(primary_key=True)
     title: str
     description: str | None = None
-    condition: dict = Field(sa_column=Column(JSONEncodedDict)) 
-    is_global: bool = True  
-    user_id: int | None = Field(default=None, foreign_key="users.id")  
+    condition: dict = Field(sa_column=Column(JSONEncodedDict))  
+    gems_reward: int = 0 
     created_at: datetime = Field(default_factory=datetime.utcnow)
-
-    medal: Optional["Medal"] = Relationship(back_populates="achievements")
 
 class UserAchievement(SQLModel, table=True):
     id: int = Field(primary_key=True)
@@ -76,13 +73,44 @@ class Medal(SQLModel, table=True):
     xp_reward: int = 0
     icon_url: str | None = None  
 
-    achievements: list["Achievement"] = Relationship(back_populates="medal")
-
 class MedalAchievementLink(SQLModel, table=True):
     __tablename__ = "medal_achievement_link"
 
     medal_id: int = Field(foreign_key="medals.id", primary_key=True)
     achievement_id: int = Field(foreign_key="achievements.id", primary_key=True)
+
+class ShopItem(SQLModel, table=True):
+    __tablename__ = "shop_items"
+
+    id: int = Field(primary_key=True)
+    name: str
+    description: str | None = None
+    need_xp: int = 0    
+    price: int = 0     
+    type: str                 
+    rarity: str | None = None 
+    icon_url: str | None = None
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+
+class UserItem(SQLModel, table=True):
+    __tablename__ = "user_items"
+
+    id: int = Field(primary_key=True)
+    user_id: int = Field(foreign_key="users.id")
+    item_id: int = Field(foreign_key="shop_items.id")
+    is_equipped: bool = False 
+    acquired_at: datetime = Field(default_factory=datetime.utcnow)
+
+class UserWallet(SQLModel, table=True):
+    __tablename__ = "user_wallets"
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    user_id: int = Field(foreign_key="users.id")
+    coins: int = Field(default=0)
+    gems: int = Field(default=0)  
+    event_tokens: int = Field(default=0)  
+
+
 
 
 

@@ -4,6 +4,7 @@ from sqlmodel import select
 from ..db.session import SessionDep
 from ..db.models import Achievement, UserAchievement, User, Role
 from ..utils.dependencies import get_current_user
+from ..utils.users import require_role
 from ..db.response_model import UserAchievementRead
 
 router = APIRouter()
@@ -14,13 +15,7 @@ def create_achievement(
     session: SessionDep,
     current_user: Annotated[User, Depends(get_current_user)]
 ):
-    if current_user.role == Role.admin:
-        achievement.is_global = True
-        achievement.user_id = None
-    else:
-        achievement.is_global = False
-        achievement.user_id = current_user.id
-
+    require_role(current_user, roles="admin")
     session.add(achievement)
     session.commit()
     session.refresh(achievement)
@@ -31,18 +26,9 @@ def read_achievements(
     session: SessionDep,
     current_user: Annotated[User, Depends(get_current_user)],
     offset: int = 0,
-    limit: Annotated[int, Query(le=100)] = 100,
-    all: bool = False,   
+    limit: Annotated[int, Query(le=100)] = 100,  
 ):
-    if current_user.role == Role.admin:
-        if all:
-            query = select(Achievement) 
-        else:
-            query = select(Achievement).where(Achievement.is_global == True)
-    else:
-        query = select(Achievement).where(
-            (Achievement.is_global == True) | (Achievement.user_id == current_user.id)
-        )
+    query = select(Achievement) 
 
     return session.exec(query.offset(offset).limit(limit)).all()
 
@@ -52,13 +38,10 @@ def read_achievement(
     session: SessionDep,
     current_user: Annotated[User, Depends(get_current_user)]
 ):
+    require_role(current_user, roles=["admin"])
     achievement = session.get(Achievement, achievement_id)
     if not achievement:
         raise HTTPException(status_code=404, detail="Achievement not found")
-
-    if current_user.role != Role.admin:
-        if not (achievement.is_global or achievement.user_id == current_user.id):
-            raise HTTPException(status_code=403, detail="Not enough permissions")
 
     return achievement
 
@@ -68,16 +51,10 @@ def delete_achievement(
     session: SessionDep,
     current_user: Annotated[User, Depends(get_current_user)]
 ):
+    require_role(current_user, roles=["admin"])
     achievement = session.get(Achievement, achievement_id)
     if not achievement:
         raise HTTPException(status_code=404, detail="Achievement not found")
-
-    if current_user.role == Role.admin:
-        if not achievement.is_global:
-            raise HTTPException(status_code=403, detail="Admins can only delete global achievements")
-    else:
-        if achievement.is_global or achievement.user_id != current_user.id:
-            raise HTTPException(status_code=403, detail="Not enough permissions")
 
     session.delete(achievement)
     session.commit()
