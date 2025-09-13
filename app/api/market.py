@@ -3,7 +3,7 @@ from sqlmodel import select
 from sqlalchemy.exc import IntegrityError
 from ..db.models import User, ShopItem, UserItem, UserWallet
 from ..db.session import SessionDep
-from ..shemas.market import BuyItemRequest, EquipItemRequest
+from ..shemas.market import BuyItemRequest
 from typing import Annotated
 from ..utils.dependencies import get_current_user
 
