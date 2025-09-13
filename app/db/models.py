@@ -11,6 +11,11 @@ class Role(str, Enum):
     manager = "manager"
     moderator = "moderator"
 
+class Currency(str, Enum):
+    COINS = "coins"
+    GEMS = "gems"
+    EVENT_TOKENS = "event_tokens"
+
 class User(SQLModel, table=True):
     __tablename__ = "users"
 
@@ -86,7 +91,8 @@ class ShopItem(SQLModel, table=True):
     name: str
     description: str | None = None
     need_xp: int = 0    
-    price: int = 0     
+    price: int = 0    
+    currency: Currency = Field(default=Currency.COINS) 
     type: str                 
     rarity: str | None = None 
     icon_url: str | None = None
@@ -109,6 +115,32 @@ class UserWallet(SQLModel, table=True):
     coins: int = Field(default=0)
     gems: int = Field(default=0)  
     event_tokens: int = Field(default=0)  
+
+class Quest(SQLModel, table=True):
+    __tablename__ = "quests"
+
+    id: int = Field(primary_key=True)
+    title: str
+    description: str
+    type: str  # daily / weekly / special
+    condition: dict = Field(sa_column=Column(JSONEncodedDict))  
+    xp_reward: int = 0
+    coin_reward: int = 0
+    event_tokens_reward: int = 0
+    start_date: datetime | None = None
+    end_date: datetime | None = None
+    is_active: bool = Field(default=True)
+
+class UserQuest(SQLModel, table=True):
+    __tablename__ = "user_quests"
+
+    id: int = Field(primary_key=True)
+    user_id: int = Field(foreign_key="users.id")
+    quest_id: int = Field(foreign_key="quests.id")
+    completed: bool = Field(default=False)
+    completed_at: datetime | None = None
+
+
 
 
 
