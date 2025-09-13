@@ -2,10 +2,12 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlmodel import select
 from ..db.session import SessionDep
-from ..db.models import Achievement, UserAchievement, User, Role
+from ..db.models import Achievement, UserAchievement, User, Habit, Streak, UserWallet
 from ..utils.dependencies import get_current_user
 from ..utils.users import require_role
 from ..db.response_model import UserAchievementRead
+import json
+from ..utils.check_condition import check_condition
 
 router = APIRouter()
 
@@ -95,3 +97,45 @@ def delete_user_achievement(ua_id: int, session: SessionDep):
     session.delete(ua)
     session.commit()
     return {"ok": True}
+
+
+def check_and_grant_achievements(session: SessionDep, user: User, habit: Habit, streak: Streak):
+    achievements = session.exec(
+        select(Achievement)
+    ).all()
+
+    obtained_ids = set(
+        session.exec(
+            select(UserAchievement.achievement_id).where(UserAchievement.user_id == user.id)
+        ).all()
+    )
+
+    wallet = session.exec(select(UserWallet).where(UserWallet.user_id == user.id)).first()
+
+    for ach in achievements:
+        if ach.id in obtained_ids:
+            continue
+
+        cond = ach.condition if isinstance(ach.condition, dict) else json.loads(ach.condition)
+        if check_condition(cond, streak, user):
+            ua = UserAchievement(
+                user_id=user.id,
+                achievement_id=ach.id,
+                habit_id=habit.id,
+                obtained=True
+            )
+            session.add(ua)
+            ua = UserAchievement(
+                user_id=user.id,
+                achievement_id=ach.id,
+                habit_id=None,
+                obtained=True
+            )
+            session.add(ua)
+
+            if wallet:
+                gems_reward = getattr(ach, "gems_reward", 1) 
+                wallet.gems += gems_reward
+                session.add(wallet)
+
+    session.commit()

@@ -1,55 +1,13 @@
 from typing import Annotated
 from fastapi import APIRouter, Query, HTTPException, Depends
 from sqlmodel import select
-from ..db.models import Habit, User, Streak, Achievement, UserAchievement, UserWallet
+from ..db.models import Habit, User, Streak, UserAchievement, UserWallet
 from ..db.response_model import HabitWithStreak
 from ..db.session import SessionDep
 from ..utils.dependencies import get_current_user
 from datetime import date, timedelta
 from math import floor
-import json
-from ..utils.check_condition import check_condition
-
-def check_and_grant_achievements(session: SessionDep, user: User, habit: Habit, streak: Streak):
-    achievements = session.exec(
-        select(Achievement)
-    ).all()
-
-    obtained_ids = set(
-        session.exec(
-            select(UserAchievement.achievement_id).where(UserAchievement.user_id == user.id)
-        ).all()
-    )
-
-    wallet = session.exec(select(UserWallet).where(UserWallet.user_id == user.id)).first()
-
-    for ach in achievements:
-        if ach.id in obtained_ids:
-            continue
-
-        cond = ach.condition if isinstance(ach.condition, dict) else json.loads(ach.condition)
-        if check_condition(cond, streak, user):
-            ua = UserAchievement(
-                user_id=user.id,
-                achievement_id=ach.id,
-                habit_id=habit.id,
-                obtained=True
-            )
-            session.add(ua)
-            ua = UserAchievement(
-                user_id=user.id,
-                achievement_id=ach.id,
-                habit_id=None,
-                obtained=True
-            )
-            session.add(ua)
-
-            if wallet:
-                gems_reward = getattr(ach, "gems_reward", 1) 
-                wallet.gems += gems_reward
-                session.add(wallet)
-
-    session.commit()
+from achievements import check_and_grant_achievements
 
 router = APIRouter()
 
