@@ -1,12 +1,12 @@
 from datetime import datetime  
 from fastapi import APIRouter, Depends, HTTPException
 from sqlmodel import select
-from ..db.models import Quest, User, UserQuest, UserWallet
+from ..db.models import Quest, User, UserQuest, UserWallet, Streak
 from ..db.session import SessionDep
 from typing import Annotated
 from ..utils.dependencies import get_current_user
 from ..utils.users import require_role
-
+from ..utils.check_condition import check_condition
 router = APIRouter()
 
 @router.post("/", response_model=Quest)
@@ -43,6 +43,7 @@ def read_quests(
 def complete_quest(
     quest_id: int,
     session: SessionDep,
+    streak: Streak,
     current_user: Annotated[User, Depends(get_current_user)]
 ):
     quest = session.get(Quest, quest_id)
@@ -54,6 +55,11 @@ def complete_quest(
         raise HTTPException(status_code=400, detail="Quest not started yet")
     if quest.end_date and now > quest.end_date:
         raise HTTPException(status_code=400, detail="Quest expired")
+    if quest.is_active is False:
+        raise HTTPException(status_code=400, detail="Quest is inactive")
+    
+    if not check_condition(quest.condition, streak, current_user):
+        raise HTTPException(status_code=400, detail="Quest conditions not met")
 
     user_quest = session.exec(
         select(UserQuest).where(

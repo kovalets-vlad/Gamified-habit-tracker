@@ -12,39 +12,25 @@ from ..utils.users import require_role
 
 router = APIRouter()
 
-@router.post("/") 
-def create_user(user: User, session: SessionDep) -> User: 
-    user.password = get_password_hash(user.password) 
-    session.add(user) 
-    session.commit() 
-    session.refresh(user) 
-    
+@router.post("/", response_model=User)
+def create_user(
+    user: User,
+    session: SessionDep,
+    current_user: Annotated[User, Depends(get_current_user)], 
+) -> User:
+    require_role(current_user, roles="admin") 
+
+    user.password = get_password_hash(user.password)
+    session.add(user)
+    session.commit()
+    session.refresh(user)
+
     wallet = UserWallet(user_id=user.id, coins=0, gems=0, event_tokens=0)
     session.add(wallet)
     session.commit()
     session.refresh(wallet)
 
     return user
-
-# @router.post("/", response_model=User)
-# def create_user(
-#     user: User,
-#     session: SessionDep,
-#     current_user: Annotated[User, Depends(get_current_user)], 
-# ) -> User:
-#     require_role(current_user, roles="admin") 
-
-#     user.password = get_password_hash(user.password)
-#     session.add(user)
-#     session.commit()
-#     session.refresh(user)
-
-#     wallet = UserWallet(user_id=user.id, coins=0, gems=0, event_tokens=0)
-#     session.add(wallet)
-#     session.commit()
-#     session.refresh(wallet)
-
-#     return user
 
 
 @router.get("/", response_model=list[User])
@@ -87,10 +73,25 @@ def delete_user(
 
 
 @router.get("/me/", response_model=User)
-async def read_users_me(
+def read_users_me(
     current_user: Annotated[User, Depends(get_current_user)],
 ):
     return current_user
+
+@router.put("/update-password/", response_model=User)
+def update_password(
+    new_password: str,
+    session: SessionDep,
+    current_user: Annotated[User, Depends(get_current_user)],
+):
+    user = session.get(User, current_user.id)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    user.password = get_password_hash(new_password)
+    session.add(user)
+    session.commit()
+    session.refresh(user)
+    return user
 
 # -----------------------------
 # Users leaderboard
