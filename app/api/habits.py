@@ -7,7 +7,7 @@ from ..db.session import SessionDep
 from ..utils.dependencies import get_current_user
 from datetime import date, timedelta
 from math import floor
-from achievements import check_and_grant_achievements
+from .achievements import check_and_grant_achievements
 
 router = APIRouter()
 
