@@ -2,9 +2,9 @@ from datetime import timedelta
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 from typing import Annotated
-from ..core.config import ACCESS_TOKEN_EXPIRE_MINUTES
-from ..core.security import create_access_token
-from ..shemas.auth import Token, LoginRequest
+from ..core.config import ACCESS_TOKEN_EXPIRE_MINUTES, REFRESH_TOKEN_EXPIRE_DAYS
+from ..core.security import create_access_token, create_refresh_token, verify_refresh_token
+from ..shemas.auth import Token, LoginRequest, RefreshTokenRequest
 from ..utils.users import authenticate_user
 from ..db.session import SessionDep
 
@@ -21,10 +21,14 @@ def login(data: LoginRequest, session: SessionDep):
         )
 
     access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    refresh_token_expires = timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
     access_token = create_access_token(
         data={"sub": user.username}, expires_delta=access_token_expires
     )
-    return Token(access_token=access_token, token_type="bearer")
+    refresh_token = create_refresh_token(
+        data={"sub": user.username}, expires_delta=refresh_token_expires
+    )
+    return Token(access_token=access_token, refresh_token=refresh_token, token_type="bearer")
 
 @router.post("/token", response_model=Token)
 async def login_for_access_token(
@@ -40,8 +44,30 @@ async def login_for_access_token(
         )
     
     access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    refresh_token_expires = timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
     access_token = create_access_token(
         data={"sub": user.username}, expires_delta=access_token_expires
     )
-    return Token(access_token=access_token, token_type="bearer")
+    refresh_token = create_refresh_token(
+        data={"sub": user.username}, expires_delta=refresh_token_expires
+    )
+    return Token(access_token=access_token, refresh_token=refresh_token, token_type="bearer")
 
+@router.post("/refresh", response_model=Token)
+def refresh_token(data: RefreshTokenRequest):
+    username = verify_refresh_token(data.refresh_token)
+    if not username:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid refresh token",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    refresh_token_expires = timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
+    access_token = create_access_token(
+        data={"sub": username}, expires_delta=access_token_expires
+    )
+    refresh_token = create_refresh_token(
+        data={"sub": username}, expires_delta=refresh_token_expires
+    )
+    return Token(access_token=access_token, refresh_token=refresh_token, token_type="bearer")
